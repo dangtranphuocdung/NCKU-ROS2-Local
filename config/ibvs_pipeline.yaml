@@ -1,11 +1,23 @@
-# Standard ROS 2 Parameter File
+# ==============================================================================
+# ibvs_pipeline.yaml — IBVS grasping pipeline parameters
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Camera Driver (v4l2_camera)
+# Run 'v4l2-ctl --list-devices' to verify device paths on your system.
+#   /dev/video0  = Laptop integrated camera
+#   /dev/video4  = External USB camera (UC60)
+# ------------------------------------------------------------------------------
 camera_node:
   ros__parameters:
-    video_device: "/dev/video0"
+    video_device: "/dev/video4"
     image_size: [640, 480]
-    pixel_format: "YUYV"
+    pixel_format: "YUYV"      # "YUYV" (uncompressed) or "MJPG" (higher fps)
     camera_frame_id: "camera_link"
 
+# ------------------------------------------------------------------------------
+# YOLO Vision Node
+# ------------------------------------------------------------------------------
 yolo_vision_node:
   ros__parameters:
     model_name: "yolo11n.pt"
@@ -13,22 +25,55 @@ yolo_vision_node:
     conf_threshold: 0.50
     target_class: "bottle"
     custom_classes: ["conical centrifuge tube with blue cap"]
-    target_pixel_x: 320   #prev: 640
-    target_pixel_y: 240   #prev: 480
-    target_area_px: 40000
+    target_pixel_x: 320
+    target_pixel_y: 240
+    target_area_px: 50000
 
+# ------------------------------------------------------------------------------
+# IBVS Controller Node
+# Proportional controller: pixel errors → Cartesian velocity for MoveIt Servo.
+#
+# Frame convention (robot_link_command_frame = base_link in servo.yaml):
+#   image  +x (target right of centre) → base_link  -Y  (arm strafes right)
+#   image  +y (target below  centre)   → base_link  -Z  (arm moves down)
+#   depth  +  (target too far away)    → base_link  +X  (arm moves forward)
+#
+# Gains to tune:
+#   gain_lateral  — m/s per pixel horizontal error
+#   gain_vertical — m/s per pixel vertical error
+#   gain_depth    — m/s per sqrt-pixel depth error
+# ------------------------------------------------------------------------------
 ibvs_controller_node:
   ros__parameters:
-    gain_x: 0.5
-    gain_y: 0.5
-    gain_z: 0.001
-    max_translation_speed_m_s: 0.05
-    tolerance_px: 15
-    tolerance_area: 1500
+    command_frame: "base_link"
+    target_pixel_x: 320.0
+    target_pixel_y: 240.0
+    target_area_px: 50000.0    # pixels² — target bounding box area at grasp distance
+    gain_lateral:    0.0003    # m/s per px  (image X → base -Y)
+    gain_vertical:   0.0003    # m/s per px  (image Y → base -Z)
+    gain_depth:      0.0020    # m/s per sqrt-px  (area → base +X)
+    max_linear_speed: 0.06     # m/s hard cap on each axis
+    detection_timeout: 0.5     # seconds — target silent for this long → stop servo
 
+# ------------------------------------------------------------------------------
+# Grasp Manager Node
+# High-level state machine: open gripper → scan → IBVS → grasp → place.
+# ------------------------------------------------------------------------------
 grasp_manager_node:
   ros__parameters:
-    # Fixed Scanning Pose in Joint Space: [joint1, joint2, joint3, joint4, joint5, joint6] (rad)
-    #scanning_joints: [0.0, -0.5, 0.5, 0.0, -1.0, 0.0]
-    scanning_joints: [0.0, -0.6528, -0.7749, 0.8011, 0.0, 0.0]
+    target_pixel_x: 320.0
+    target_pixel_y: 240.0
+    target_area_px: 50000.0
+    tolerance_px:   25.0
+    tolerance_area: 4000.0
+    scanning_joints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     scanning_pose_duration: 3.0
+
+# ------------------------------------------------------------------------------
+# Hardware Servo Bridge Node
+# Lean joint-state QoS bridge + MoveIt Servo → vendor pos_vel forwarding.
+# ------------------------------------------------------------------------------
+hardware_servo_bridge_node:
+  ros__parameters:
+    arm_namespace: "rebotarm"
+    default_vlim: 1.5          # rad/s velocity limit sent to each motor

@@ -1,0 +1,6 @@
+# ======================================================================
+# reBotArm Saved Poses / Waypoints
+# Session started: 2026-11-04 11:31:45
+# Model: ReBot_Arm_RS | End-effector frame: gripper_end
+# ======================================================================
+

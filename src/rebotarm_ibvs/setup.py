@@ -28,6 +28,7 @@ setup(
             'yolo_vision_node = rebotarm_ibvs.yolo_vision_node:main',
             'ibvs_controller_node = rebotarm_ibvs.ibvs_controller_node:main',
             'grasp_manager_node = rebotarm_ibvs.grasp_manager_node:main',
+            'hardware_servo_bridge_node = rebotarm_ibvs.hardware_servo_bridge_node:main',
         ],
     },
 )

@@ -21,6 +21,7 @@ setup(
             "reBotArmController = rebotarmcontroller.rebotarm_controller:main",
             "FakeRsDriver = rebotarmcontroller.fake_rs_driver:main",
             "GravityCompensation = rebotarmcontroller.examples.gravity_compensation:main",
+            "GravityCompensationPose = rebotarmcontroller.examples.gravity_compensation_pose:main",
             "GripperControl = rebotarmcontroller.examples.gripper_control:main",
             "MoveTo = rebotarmcontroller.examples.move_to:main",
             "MoveToPose = rebotarmcontroller.examples.move_to_pose:main",

@@ -16,11 +16,13 @@ scale:
 # Currently supported are std_msgs/Float64MultiArray or trajectory_msgs/JointTrajectory
 command_out_type: trajectory_msgs/JointTrajectory
 
-# What to publish? Can save some bandwidth as most robots only require positions or velocities
-publish_positions: true
-publish_velocities: true
-publish_accelerations: false
-publish_period: 0.01 # 100Hz
+# What to publish? rebotarm_controller only accepts position command interface
+publish_joint_positions: true
+publish_joint_velocities: false
+publish_joint_accelerations: false
+publish_period: 0.02 # 50Hz
+incoming_command_timeout: 0.5
+num_outgoing_halt_msgs_to_publish: 4
 ## Plugins for smoothing outgoing commands
 smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
 
@@ -29,7 +31,7 @@ is_primary_planning_scene_monitor: false
 check_validity: false # Check collision and kinematics limits?
 
 # Collision checking distance thresholds
-collision_check_rate: 10.0 # [Hz] Collision-checking can easily bog down a CPU if done too often.
+collision_check_rate: 0.0 # [Hz] 0 disables collision check in Servo so open-table motion doesn't falsely halt
 # Two collision check algorithms are available:
 # "threshold_distance" begins slowing down when robot is nearer than stop_distance. Good for the PID approach.
 # "stop_distance" stops the robot when collision_distance < stop_distance. Good for the Jacobian approach.
@@ -38,14 +40,14 @@ collision_check_type: threshold_distance
 self_collision_proximity_threshold: 0.01 # Start decelerating when a self-collision is this far [m]
 scene_collision_proximity_threshold: 0.02 # Start decelerating when a scene collision is this far [m]
 # Parameters for "stop_distance"-type collision checking
-collision_distance_safety_factor: 1000.0 # Must be >= 1. A large safety factor is recommended to account for latency
+collision_distance_safety_factor: 1.0 # Default factor is 1.0 (1000.0 was a severe bug that halted all motion)
 min_allowable_collision_distance: 0.01 # Stop if a collision is closer than this [m]
 
 # Kinematics limits
-joint_limit_margin: 0.1 # added as a buffer to joint limits [rad]. If moving quickly, make this larger.
-lower_singularity_threshold:  20.0 # Start decelerating when the condition number hits this (close to singularity)
-hard_singularity_threshold:    30.0 # Stop when the condition number hits this
-leaving_singularity_factor: 0.5 # Multiply the command by this factor when moving away from a singularity. (>1.0 to move away faster)
+joint_limit_margin: 0.01 # Buffer to joint limits [rad]. 0.01 allows motion near joint zero boundary
+lower_singularity_threshold:  50.0 # Start decelerating when condition number hits this
+hard_singularity_threshold:    150.0 # Stop when condition number hits this
+leaving_singularity_factor: 2.0 # Multiply command by this factor when moving away from singularity
 
 # Topic names
 cartesian_command_in_topic: ~/delta_twist_cmds  # Topic for incoming Cartesian twist commands
@@ -56,7 +58,7 @@ command_out_topic: /rebotarm_controller/joint_trajectory # Publish outgoing comm
 
 # Frame names
 command_out_frame: base_link # The frame to which the outgoing command applies
-robot_link_command_frame: gripper_tcp  # The frame in which the incoming Twist commands will be applied
+robot_link_command_frame: base_link  # X=Forward, Y=Left, Z=Up in robot base frame
 ee_frame_name: gripper_tcp # The frame of the end effector (gripper tool center point)
 planning_frame: base_link # The MoveIt planning frame. Often 'base_link' or 'world'
 

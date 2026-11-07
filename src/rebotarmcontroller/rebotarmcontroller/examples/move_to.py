@@ -102,10 +102,18 @@ class DemoMoveTo(Node):
 
         trajectory = JointTrajectory()
         trajectory.joint_names = joint_names
-        point = JointTrajectoryPoint()
-        point.positions = [float(v) for v in target]
-        point.time_from_start = _duration_msg(self._duration)
-        trajectory.points = [point]
+
+        # First point: start at current joint state at t=0
+        start_point = JointTrajectoryPoint()
+        start_point.positions = [float(v) for v in current]
+        start_point.time_from_start = _duration_msg(0.0)
+
+        # Second point: target joint state at t=duration
+        target_point = JointTrajectoryPoint()
+        target_point.positions = [float(v) for v in target]
+        target_point.time_from_start = _duration_msg(self._duration)
+
+        trajectory.points = [start_point, target_point]
 
         self.get_logger().info(
             "moving joints to "
